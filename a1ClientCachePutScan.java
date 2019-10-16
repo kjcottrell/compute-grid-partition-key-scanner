@@ -78,7 +78,7 @@ public class a1ClientCachePutScan {
     	IgniteCache<Long, Person> personCache = ignite.getOrCreateCache(personCacheCfg);
     	
     	
-    	 for (long i = 1; i< 5000; i++)
+    	 for (long i = 1; i< 50; i++)
     	 {
     		 String ctr = Long.toString(i);
   

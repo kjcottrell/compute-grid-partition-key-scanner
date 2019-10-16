@@ -125,7 +125,7 @@ public class a2ClientCacheStatsBcst {
             	filter1.setPartition(partitions[i]);
             	QueryCursor<Entry<Long, Person>> qryCursor = personCache.query(filter1); 
           		qryCursor.forEach(
-          		            entry -> System.out.print(entry.getKey() + ","));
+          		            entry -> System.out.println("key=" + entry.getKey() + ",val=" + personCache.get(entry.getKey())));
           		
                     
             	
