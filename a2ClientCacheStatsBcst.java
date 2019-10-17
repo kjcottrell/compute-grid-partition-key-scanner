@@ -29,7 +29,7 @@ import org.apache.ignite.cache.query.QueryCursor;
 import org.apache.ignite.cache.query.ScanQuery;
 import org.apache.ignite.configuration.IgniteConfiguration;
 import org.apache.ignite.examples.ExampleNodeStartup;
-import org.apache.ignite.examples.model.Person;
+// import org.apache.ignite.examples.model.Person; // moved into this package
 
 /**
  * Demonstrates broadcasting computations within cluster.
@@ -54,7 +54,7 @@ public class a2ClientCacheStatsBcst {
 
         	IgniteConfiguration cfg = new IgniteConfiguration();
         	
-        	String INSTANCE_NAME = "ClientCacheStats-"+ Long.toString(timestamp);
+        	String INSTANCE_NAME = "ClientCacheStatsBroadcast-"+ Long.toString(timestamp);
         	String PERSON_CACHE_NAME = "PersonCache" ;
         	
         	Ignition.setClientMode(true);
@@ -83,16 +83,20 @@ public class a2ClientCacheStatsBcst {
     
     	ignite.compute().broadcast(() -> {
            
-            System.out.println("BROADCAST Getting Cache {" + cachename 
-            		+ "} partition Count and List from this node id if present: " 
+    		IgniteCache<Long, Person> cache = ignite.getOrCreateCache(cachename);
+    
+    		
+            System.out.println("Cache Name =" + cachename 
+            				+ "partition Count and List from this node id if present: " 
             		+ ignite.cluster().localNode().id());
             
             int[] partitions; 
             partitions = ignite.affinity(cachename).allPartitions(ignite.cluster().localNode());
-            System.out.print( " # partitions = " + partitions.length + " [");
-         	for (int part : partitions)       		
+            System.out.print( "Total # partitions for this node = " + partitions.length + " [");
+         	for (int part : partitions)      		
         		System.out.print(part + ",");
-        	System.out.print("]\n");
+         	System.out.print("]\n");
+        	
         	
         	
         	System.out.println("Data Region metrics size : " + ignite.dataRegionMetrics().size());
@@ -125,10 +129,12 @@ public class a2ClientCacheStatsBcst {
             	filter1.setPartition(partitions[i]);
             	QueryCursor<Entry<Long, Person>> qryCursor = personCache.query(filter1); 
           		qryCursor.forEach(
-          		            entry -> System.out.println("key=" + entry.getKey() + ",val=" + personCache.get(entry.getKey())));
-          		
-                    
-            	
+          		            entry -> System.out.println(      
+          		            		"Primary?="   // true otherwise False if backup partition 
+          		            					+  ignite.affinity(cachename).isPrimaryOrBackup(ignite.cluster().localNode(), entry.getKey())
+          		            	+ "key=" + entry.getKey() 
+          		            	+ ",val=" + personCache.get(entry.getKey())  )
+          				);
             	//personCache.query((filter1)).getAll();
             	//QueryCursor<Entry<Long,Person>> qrycursor = personCache.query(filter1);
             	//System.out.println("keys=" + qrycursor.toString());

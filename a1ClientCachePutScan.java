@@ -31,8 +31,8 @@ import org.apache.ignite.lifecycle.*;
 import org.apache.ignite.cache.query.*;
 import org.apache.ignite.cache.CacheEntryProcessor;
 import org.apache.ignite.lang.IgniteBiPredicate;
-import org.apache.ignite.examples.model.Person;
 
+import java.util.List;
 import java.util.Calendar;
 import java.util.Date;
 import java.time.ZonedDateTime;
@@ -55,6 +55,13 @@ public class a1ClientCachePutScan {
     	CacheConfiguration<Long, Person> personCacheCfg = new CacheConfiguration<>();
     	personCacheCfg.setName(PERSON_CACHE_NAME);
     	
+    	// register with SQL layer engine
+    	personCacheCfg.setIndexedTypes(Long.class, Person.class);
+    	
+    	personCacheCfg.setBackups(1);
+    	
+    	System.out.println("Cache/Backups = " + PERSON_CACHE_NAME + "/" + personCacheCfg.getBackups());
+     	
     	cfg.setIgniteInstanceName(INSTANCE_NAME);
    
     	
@@ -77,6 +84,7 @@ public class a1ClientCachePutScan {
     	
     	IgniteCache<Long, Person> personCache = ignite.getOrCreateCache(personCacheCfg);
     	
+  
     	
     	 for (long i = 1; i< 50; i++)
     	 {
@@ -113,7 +121,14 @@ public class a1ClientCachePutScan {
         filter1.setFilter(orgfilter);
         System.out.println("Orgid == 104 scan results" + personCache.query(filter1).getAll()) ;
          
-    	
+        QueryCursor<List<?>> cursor = personCache.query(new SqlFieldsQuery(
+        		  "select salary from Person"));
+        System.out.print("Person.salary=");
+        for (List<?> row : cursor)
+            System.out.print(row.get(0) +",");
+        
+        
+        
         System.out.println("closing this Client Node now ....  Person cache objects have been created in Server nodes");
     	 ignite.close(); 
     	 
