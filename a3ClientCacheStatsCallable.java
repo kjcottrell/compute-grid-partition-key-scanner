@@ -68,37 +68,84 @@ public class a3ClientCacheStatsCallable {
     
     
     	// ignite.compute().run( () -> System.out.println("sample message -  this on all nodes"));
-    	System.out.println("Collecting  Getting Cache {" + cachename 
-        		+ "} partition Count and List from this node id if present: " 
-        		+ ignite.cluster().localNode().id());
-       
-        
     	
-    	System.out.println("Data Region metrics size : " + ignite.dataRegionMetrics().size());
+    	Collection<IgniteCallable<int[]>> partitionsList = new ArrayList<>();
+    	Collection<IgniteCallable<int[]>> keysList = new ArrayList<>();
+    	Collection<IgniteCallable<Integer>> calls = new ArrayList<>();
     	
-    	Collection<IgniteCallable<String>> cacheNames = new ArrayList<>();
-    	Collection<IgniteCallable<Integer>> partitionCount = new ArrayList<>();
-    	Collection<IgniteCallable<Integer>> keyCount = new ArrayList<>();
-    
-        Collection<IgniteCallable<Integer>> calls = new ArrayList<>();
-
-        // Iterate through all words in the sentence and create callable jobs.
-    
-        	
-        	/*
-        partitionCount.add((int [] partitions) -> {
-                System.out.println();
+    	partitionsList.add(() -> {    		
+            IgniteCache<Long, Person> cache = ignite.getOrCreateCache(cachename);    		
+            System.out.println("Cache Name =" + cachename 
+            				+ "partition Count and List from this node id if present: " 
+            		+ ignite.cluster().localNode().id());
             
-                partitions = ignite.affinity(cachename).allPartitions(ignite.cluster().localNode());
-
-                return partitions.length();
+            int [] partitions; 
+            partitions = ignite.affinity(cachename).allPartitions(ignite.cluster().localNode());
+            System.out.print( "Total # partitions for this node = " + partitions.length + " [");
+         	for (int part : partitions)      		
+        		System.out.print(part + ",");
+         	System.out.print("]\n");
+        	
+        	
+        	        
+            return partitions;
         });
-        */
+    	
+    	
+    	keysList.add(() -> {
+
+    		IgniteCache<Long, Person> personCache = ignite.getOrCreateCache(cachename);
+            int[] partitions = ignite.affinity(cachename).allPartitions(ignite.cluster().localNode());
+            
+            System.out.println( "Node ID=" + ignite.cluster().localNode().id() + " has # Partitions=" + partitions.length);
+            ScanQuery<Long, Person> filter1 = new ScanQuery<>();
+            
+       	 
+            for (int i=0; i<partitions.length; i++)
+            {
+            	System.out.print("{" + partitions[i] + "}");
+            	filter1.setPartition(partitions[i]);
+            	QueryCursor<Entry<Long, Person>> qryCursor = personCache.query(filter1); 
+          		qryCursor.forEach(
+          		            entry -> System.out.println(      
+          		            		"Primary?="   // true otherwise False if backup partition 
+          		            					+  ignite.affinity(cachename).isPrimaryOrBackup(ignite.cluster().localNode(), entry.getKey())
+          		            	+ "key=" + entry.getKey() 
+          		            	+ ",val=" + personCache.get(entry.getKey())  )
+          				);
+            	//personCache.query((filter1)).getAll();
+            	//QueryCursor<Entry<Long,Person>> qrycursor = personCache.query(filter1);
+            	//System.out.println("keys=" + qrycursor.toString());
+            }
+            
+            int [] temp = {0,1,2};
+
+            return temp;
+        });
+    	
+        // Iterate through all words in the sentence and create callable jobs.
+        for (String word : "Count characters using callable".split(" ")) {
+            calls.add(() -> {
+                System.out.println();
+                System.out.println(">>> Printing '" + word + "' on this node from ignite job.");
+
+                return word.length();
+            });
+        }
 
         // Execute collection of callables on the ignite.
-        Collection<Integer> res = ignite.compute().call(calls);
+        Collection<int[]> partitionsAll = ignite.compute().call(partitionsList);
 
-        int sum = res.stream().mapToInt(i -> i).sum();
+        Collection<int[]> keysAll = ignite.compute().call(keysList);
+        
+        System.out.println("PArtitions / counts info:" + partitionsAll.size() + "keys = " + keysAll.size());
+        
+        
+   //      int sum = res.stream().mapToInt(i -> i).sum();
+
+
+
+   
 
         
     

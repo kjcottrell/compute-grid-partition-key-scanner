@@ -22,6 +22,7 @@ import java.util.Date;
 import javax.cache.Cache.Entry;
 
 import org.apache.ignite.Ignite;
+import org.apache.ignite.IgniteCompute;
 import org.apache.ignite.IgniteCache;
 import org.apache.ignite.IgniteException;
 import org.apache.ignite.Ignition;
@@ -63,6 +64,10 @@ public class a2ClientCacheStatsBcst {
         	
         	cfg.setIgniteInstanceName(INSTANCE_NAME);
 
+        	ignite.compute().run( () -> System.out.println("This is a compute.run which will run on just one of the nodes: "
+        			+ ignite.cluster().localNode().id()));
+        		
+        
             
             cachePartitionInfo(ignite, PERSON_CACHE_NAME);
             System.out.println(">>> Check Each Node console for info on local node Partitions list ...");
@@ -80,8 +85,10 @@ public class a2ClientCacheStatsBcst {
     }
 
     private static void cachePartitionInfo(Ignite ignite, String cachename) throws IgniteException {
-    
-    	ignite.compute().broadcast(() -> {
+    	
+    	IgniteCompute cacheNodes  = ignite.compute(ignite.cluster().forServers().forCacheNodes(cachename));  // cache  servers only
+    	
+    	cacheNodes.broadcast(() -> {
            
     		IgniteCache<Long, Person> cache = ignite.getOrCreateCache(cachename);
     
@@ -109,7 +116,9 @@ public class a2ClientCacheStatsBcst {
   
     private static void showKeysFromLocalPartition(Ignite ignite, String cachename) throws IgniteException {
         
-    	ignite.compute().broadcast(() -> {
+    	IgniteCompute cacheNodes  = ignite.compute(ignite.cluster().forServers().forCacheNodes(cachename));  // cache  servers only
+    	
+    	cacheNodes.broadcast(() -> {
            
             System.out.println("BROADCAST list keys from each partition  {" + cachename 
             		+ "} in this Node id: " 	+ ignite.cluster().localNode().id());
